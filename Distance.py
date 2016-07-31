@@ -19,7 +19,7 @@ class MyDistance:
             
         print("Callback done")
             
-    def Setup(self):
+    def __init__(self):
         self.lastHighTime = 0
     
         self.triggerPin = Pin(4, Pin.OUT)
