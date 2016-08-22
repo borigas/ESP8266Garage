@@ -123,7 +123,7 @@ class MqttGarage:
         isTimeLocked = False
         if self.lastSubscribe != 0:
             now = time.time()
-            lastSubscribeAge = self.lastSubscribe - now
+            lastSubscribeAge = now - self.lastSubscribe
             # Lock for 1 min after receiving a message
             isTimeLocked = lastSubscribeAge > 60
         
@@ -160,7 +160,7 @@ class MqttGarage:
         distance = self.distanceSensor.Measure()
         
         now = time.time()
-        lastPublishAge = self.lastPublish - now
+        lastPublishAge = now - self.lastPublish
         
         isOpen = self.IsDoorOpen(distance)
         isCarPresent = self.IsCarPresent(distance)
