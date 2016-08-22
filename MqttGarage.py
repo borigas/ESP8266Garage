@@ -12,14 +12,14 @@ class Relay:
 
     def __init__(self, pin, initialValue=0):
         self.controlPin = Pin(pin, Pin.OUT)
-        self.controlPin.value(0)
+        self.Open()
         pass
     
     def Open(self):
-        self.controlPin.value(1)
+        self.controlPin.value(0)
         
     def Close(self):
-        self.controlPin.value(0)
+        self.controlPin.value(1)
         
         
 class DistanceSensor:
@@ -54,7 +54,7 @@ class DistanceSensor:
         
         time = machine.time_pulse_us(self.echoPin, 1, 100000)
         dist = 165.7 * time * 3.28084 / 1000000
-        print("Dist: ", dist, " ft. Temp Timer: ", time)
+        #print("Dist: ", dist, " ft. Temp Timer: ", time)
         
         return dist
         
@@ -76,14 +76,17 @@ class MqttHelper:
 #            binaryTopic = ubinascii.a2b_base64(topic)
 #            self.mqttClient.subscribe(binaryTopic)
             
-        
     def Publish(self, topic, message):
         # TODO Take topic and data as params
         # TODO Then need to convert to binary for publish. Probably using ubinascii.a2b_base64(data)
         self.mqttClient.publish(topic, message)
+
+    def Subscribe(self, topic, callback):
+        self.mqttClient.set_callback(callback)
+        self.mqttClient.subscribe(topic)
         
     def CheckForMessage(self):
-        self.mqttClient.chech_msg()
+        self.mqttClient.check_msg()
     
     
 class MqttGarage:
@@ -102,23 +105,62 @@ class MqttGarage:
         self.mqttClient = MqttHelper(serverAddress, self.clientId)
         
         self.baseTopic = "home/garage/door/" + self.clientId
+        self.setTopic = self.baseTopic + "/set"
+        
+        self.mqttClient.Subscribe(self.setTopic, self.SubscribeCallback)
         
         self.timer = machine.Timer(0)
         
         self.distance = 0
-        self.isOpen = false
-        self.isCarPresent = false
-        self.hasRun = false
-        self.lastPublishMs = 0
+        self.isOpen = False
+        self.isCarPresent = False
+        self.hasRun = False
+        self.hasNewMessage = False
+        self.lastPublish = 0
+        self.lastSubscribe = 0
         
     def timerCallback(self, timer):
-        self.CheckDistance()
+        isTimeLocked = False
+        if self.lastSubscribe != 0:
+            now = time.time()
+            lastSubscribeAge = self.lastSubscribe - now
+            # Lock for 1 min after receiving a message
+            isTimeLocked = lastSubscribeAge > 60
+        
+        hadMessage = self.CheckMqttMessages(not isTimeLocked)
+        if not isTimeLocked and not hadMessage:
+            self.CheckDistance()
+        
+    def CheckMqttMessages(self, processMessages):
+        self.mqttClient.CheckForMessage()
+        hadMessage = self.hasNewMessage
+        if hadMessage:
+            self.hasNewMessage = False
+            self.lastSubscribe = time.time()
+            
+            if processMessages:
+                openMsg = b'open'
+                closeMsg = b'close'
+                currentMessage = self.lastMessage
+                if currentMessage == openMsg:
+                    self.OpenDoor()
+                elif currentMessage == closeMsg:
+                    self.CloseDoor()
+            
+        return hadMessage
+    
+        
+    def SubscribeCallback(self, topic, msg):
+        print("MsgReceived. Topic: ", topic, " Msg: ", msg)
+        self.lastTopic = topic
+        self.lastMessage = msg
+        self.hasNewMessage = True
         
     def CheckDistance(self):
         distance = self.distanceSensor.Measure()
         
-        lastCheckMs = utime.ticks_ms()
-        lastPublishAgeMs = utime.ticks_diff(lastCheckMs, self.lastPublishMs)
+        now = time.time()
+        lastPublishAge = self.lastPublish - now
         
         isOpen = self.IsDoorOpen(distance)
         isCarPresent = self.IsCarPresent(distance)
@@ -128,32 +170,40 @@ class MqttGarage:
         hasDoorOpenChanged = isOpen != self.isOpen
         hasCarStatusChanged = isCarPresent != self.isCarPresent
         hasDistanceChanged = abs(distance - self.distance) > 0.2
-        hasPublishExpired = lastPublishAgeMs > 60 * 60 * 1000 # 1 hr
+        hasPublishExpired = lastPublishAge > 60 * 60 # 1 hr
         
-        if isValidReading and ((not hasRun) or hasDoorChanged or hasCarStatusChanged or hasDistanceChanged or hasPublishExpired):
+        if isValidReading and ((not self.hasRun) or hasDoorOpenChanged or hasCarStatusChanged or hasDistanceChanged or hasPublishExpired):
+        
+            print("HasRun:", self.hasRun, " DoorChanged:", hasDoorOpenChanged, " CarChanged:", hasCarStatusChanged, " DistChanged:", hasDistanceChanged, " PubChanged:", hasPublishExpired, " PubAge:", lastPublishAge, " Now:", now, " Last:", self.lastPublish)
         
             self.distance = distance
             self.isOpen = isOpen
             self.isCarPresent = isCarPresent
             
-            status = "closed"
-            if isOpen:
-                status = "open"
+            self.PublishStatus()
             
-            dictionary = dict(
-                Status = status,
-                Distance = distance, 
-                IsOpen = isOpen,
-                IsCarPresent = isCarPresent,
-                ClientId = self.clientId,
-            )
-            msg = ujson.dumps(dictionary)
-            topic = self.baseTopic + "/status"
-            print(topic + ": " + msg)
-            self.mqttClient.Publish(topic, msg)
+            self.lastPublish = now
+            self.hasRun = True
+            
+    def PublishStatus(self):
+        status = "closed"
+        if self.isOpen:
+            status = "open"
+        
+        dictionary = dict(
+            Status = status,
+            Distance = self.distance, 
+            IsOpen = self.isOpen,
+            IsCarPresent = self.isCarPresent,
+            ClientId = self.clientId,
+        )
+        msg = ujson.dumps(dictionary)
+        topic = self.baseTopic
+        print(topic + ": " + msg)
+        self.mqttClient.Publish(topic, msg)
             
     def IsDoorOpen(self, distance):
-        return distance > 3
+        return distance <= 3
         
     def IsCarPresent(self, distance):
         return distance <= 6
@@ -162,18 +212,24 @@ class MqttGarage:
         return 0.5 < distance < 25
             
     def OpenDoor(self):
-        self.ToggleDoor(false)
+        self.ToggleDoor(True)
         
     def CloseDoor(self):
-        self.ToggleDoor(true)
+        self.ToggleDoor(False)
             
-    def ToggleDoor(self, expectedCurrentIsDoorUp):
+    def ToggleDoor(self, desiredIsOpen):
         distance = self.distanceSensor.Measure()
         
+        expectedCurrentIsDoorUp = not desiredIsOpen
+        
         if self.IsValidReading(distance) and self.IsDoorOpen(distance) == expectedCurrentIsDoorUp:
-            self.relay.close()
-            utime.sleep(0.01)
-            self.relay.open()
+            self.relay.Close()
+            time.sleep(0.1)
+            self.relay.Open()
+            
+            self.isOpen = desiredIsOpen
+            
+            self.PublishStatus()
         
     def StartTimer(self):
         self.timer.init(period=5000, mode=machine.Timer.PERIODIC, callback=self.timerCallback)
