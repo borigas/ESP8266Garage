@@ -125,7 +125,7 @@ class MqttGarage:
             now = time.time()
             lastSubscribeAge = now - self.lastSubscribe
             # Lock for 1 min after receiving a message
-            isTimeLocked = lastSubscribeAge > 60
+            isTimeLocked = lastSubscribeAge < 60
         
         hadMessage = self.CheckMqttMessages(not isTimeLocked)
         if not isTimeLocked and not hadMessage:
@@ -172,9 +172,9 @@ class MqttGarage:
         hasDistanceChanged = abs(distance - self.distance) > 0.2
         hasPublishExpired = lastPublishAge > 60 * 60 # 1 hr
         
-        if isValidReading and ((not self.hasRun) or hasDoorOpenChanged or hasCarStatusChanged or hasDistanceChanged or hasPublishExpired):
+        #print("Dist:", distance, " HasRun:", self.hasRun, " IsValid:", isValidReading, " IsOpen:", isOpen, " CarPresent:", isCarPresent, " DoorChanged:", hasDoorOpenChanged, " CarChanged:", hasCarStatusChanged, " DistChanged:", hasDistanceChanged, " PubChanged:", hasPublishExpired, " PubAge:", lastPublishAge, " Now:", now, " Last:", self.lastPublish)
         
-            print("HasRun:", self.hasRun, " DoorChanged:", hasDoorOpenChanged, " CarChanged:", hasCarStatusChanged, " DistChanged:", hasDistanceChanged, " PubChanged:", hasPublishExpired, " PubAge:", lastPublishAge, " Now:", now, " Last:", self.lastPublish)
+        if isValidReading and ((not self.hasRun) or hasDoorOpenChanged or hasCarStatusChanged or hasDistanceChanged or hasPublishExpired):
         
             self.distance = distance
             self.isOpen = isOpen
@@ -209,7 +209,7 @@ class MqttGarage:
         return distance <= 6
         
     def IsValidReading(self, distance):
-        return 0.5 < distance < 25
+        return 0.1 < distance < 25
             
     def OpenDoor(self):
         self.ToggleDoor(True)
@@ -232,7 +232,7 @@ class MqttGarage:
             self.PublishStatus()
         
     def StartTimer(self):
-        self.timer.init(period=5000, mode=machine.Timer.PERIODIC, callback=self.timerCallback)
+        self.timer.init(period=500, mode=machine.Timer.PERIODIC, callback=self.timerCallback)
         
     def StopTimer(self):
         self.timer.deinit()
