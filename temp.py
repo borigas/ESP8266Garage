@@ -1,7 +1,27 @@
-from machine import Pin
-import time
+import simple
+import robust
 
-class MyDistance:
+class MyTemp:
+
+    def Publish(self):
+        print("Main")
+        server = "192.168.1.11"
+        c = simple.MQTTClient("test_client", server)
+        c.connect()
+        c.publish(b"foo_topic", b"hello")
+        c.disconnect()
+        print("done")
+
+'''
+from machine import Timer
+
+tim = Timer(0)
+tim.init(period=5000, mode=Timer.PERIODIC, callback=lambda t:count())
+
+
+class Temp:
+
+    password = "temppass"
 
     def Callback(self, p):
         us = time.ticks_us()
@@ -22,14 +42,14 @@ class MyDistance:
     def __init__(self):
         self.lastHighTime = 0
     
-        self.triggerPin = Pin(0, Pin.OUT)
+        self.triggerPin = Pin(4, Pin.OUT)
         self.triggerPin.value(0)
-        self.echoPin = Pin(4, Pin.IN)
+        self.echoPin = Pin(5, Pin.IN)
         
         self.echoPin.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=self.Callback)
         
     def Trigger(self):
-        print("Triggering ", self.triggerPin, " Listening ", self.echoPin)
         self.triggerPin.value(1)
         time.sleep(0.001)
         self.triggerPin.value(0)
+'''
