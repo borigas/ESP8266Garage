@@ -236,3 +236,8 @@ class MqttGarage:
         
     def StopTimer(self):
         self.timer.deinit()
+
+    def Run():
+        instance = MqttGarage()
+        instance.StartTimer()
+        return instance
