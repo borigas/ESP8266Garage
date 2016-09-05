@@ -187,7 +187,7 @@ class MqttGarage:
             
     def GetDistance(self):
         distanceTolerance = 0.2
-        checkCount = 3
+        checkCount = 7
         distances = list()
         
         for i in range(checkCount):
