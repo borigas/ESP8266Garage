@@ -252,7 +252,7 @@ class MqttGarage:
             self.PublishStatus()
         
     def StartTimer(self):
-        self.timer.init(period=500, mode=machine.Timer.PERIODIC, callback=self.timerCallback)
+        self.timer.init(period=5000, mode=machine.Timer.PERIODIC, callback=self.timerCallback)
         
     def StopTimer(self):
         self.timer.deinit()
