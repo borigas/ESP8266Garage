@@ -157,7 +157,7 @@ class MqttGarage:
         self.hasNewMessage = True
         
     def CheckDistance(self):
-        distance = self.distanceSensor.Measure()
+        distance = self.GetDistance()
         
         now = time.time()
         lastPublishAge = now - self.lastPublish
@@ -184,6 +184,27 @@ class MqttGarage:
             
             self.lastPublish = now
             self.hasRun = True
+            
+    def GetDistance(self):
+        distanceTolerance = 0.2
+        checkCount = 3
+        distances = list()
+        
+        for i in range(checkCount):
+            distance = self.distanceSensor.Measure()
+            if self.IsValidReading(distance):
+                distances.append(distance)
+                
+        if len(distances) == 0:
+            return 0
+        else:
+            first = distances[0]
+            for dist in distances:
+                if abs(first - dist) >= distanceTolerance:
+                    return 0
+            return sum(distances) / len(distances)
+        
+        
             
     def PublishStatus(self):
         status = "closed"
@@ -218,7 +239,7 @@ class MqttGarage:
         self.ToggleDoor(False)
             
     def ToggleDoor(self, desiredIsOpen):
-        distance = self.distanceSensor.Measure()
+        distance = self.GetDistance()
         
         expectedCurrentIsDoorUp = not desiredIsOpen
         
