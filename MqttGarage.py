@@ -202,8 +202,7 @@ class MqttGarage:
             for dist in distances:
                 if abs(first - dist) >= distanceTolerance:
                     return 0
-            return sum(distances) / len(distances)
-        
+            return max(distances)
         
             
     def PublishStatus(self):
