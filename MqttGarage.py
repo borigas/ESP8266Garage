@@ -198,10 +198,6 @@ class MqttGarage:
         if len(distances) == 0:
             return 0
         else:
-            first = distances[0]
-            for dist in distances:
-                if abs(first - dist) >= distanceTolerance:
-                    return 0
             return max(distances)
         
             
