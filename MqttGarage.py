@@ -5,7 +5,7 @@ from simple import MQTTClient
 import ubinascii
 import ujson
 
-# WatchDog timer to restart device: http://docs.micropython.org/en/latest/esp8266/library/machine.WDT.html
+# TODO WatchDog timer to restart device: http://docs.micropython.org/en/latest/esp8266/library/machine.WDT.html
 
 
 class Relay:
@@ -24,19 +24,6 @@ class Relay:
         
 class DistanceSensor:
 
-    def pinCallback(self, p):
-        us = time.ticks_us()
-        value = p.value()
-        #print('Pin Change', p, " value: ", value, " us: ", us)
-        
-        if(value == 1):
-            self.lastHighTime = us
-        else:
-            diff = time.ticks_diff(self.lastHighTime, us)
-            dist = 165.7 * diff / 1000000
-            self.lastHighTime = 0
-            #self.measureCallback(dist, diff)
-            
     def __init__(self, trigger, echo):
         self.lastHighTime = 0
     
@@ -44,10 +31,7 @@ class DistanceSensor:
         self.triggerPin.value(0)
         self.echoPin = Pin(4, Pin.IN)
         
-        #self.echoPin.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=self.pinCallback)
-        
     def Measure(self):
-        #print("Triggering ", self.triggerPin, " Listening ", self.echoPin)
         self.triggerPin.value(1)
         #time.sleep(0.001)
         self.triggerPin.value(0)
@@ -62,23 +46,10 @@ class DistanceSensor:
 class MqttHelper:
     
     def __init__(self, serverAddress, clientId):
-    #, subscribeTopics, subscribeCallback):
         self.mqttClient = MQTTClient(clientId, serverAddress)
         self.mqttClient.connect()
-        
-#        self.mqttClient.set_callback(sub_cb)
-#        
-#        self.mqttClient.connect()
-#        
-#        self.mqttClient.subscribe(b"foo_topic")
-#        
-#        for topic in subscribeTopics:
-#            binaryTopic = ubinascii.a2b_base64(topic)
-#            self.mqttClient.subscribe(binaryTopic)
             
     def Publish(self, topic, message):
-        # TODO Take topic and data as params
-        # TODO Then need to convert to binary for publish. Probably using ubinascii.a2b_base64(data)
         self.mqttClient.publish(topic, message)
 
     def Subscribe(self, topic, callback):
