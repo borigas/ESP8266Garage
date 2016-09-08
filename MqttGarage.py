@@ -223,7 +223,7 @@ class MqttGarage:
         self.mqttClient.Publish(topic, msg)
             
     def IsDoorOpen(self, distance):
-        return distance <= 3
+        return distance <= 4
         
     def IsCarPresent(self, distance):
         return distance <= 6
