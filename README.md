@@ -12,10 +12,10 @@ https://circuits.io/circuits/2474900-mqtt-garage-door-sensor
 
 | Part        | Price | Notes                               |
 |-------------------|-------|--------------------------------|
-| Breadboard        | $1.60 |                                |
-| ESP8266           | $4.70 |                                |
-| US-100            | $2.20 | Similar to HC-SR04, but for 3v |
-| 3v Relay             | $2.50 |                        |
+| [Breadboard](http://www.electrodragon.com/product/small-size-breadboard-layout-pcb/)        | $1.60 |                                |
+| [ESP8266](http://www.electrodragon.com/product/nodemcu-lua-amica-r2-esp8266-wifi-board/)           | $4.70 |                                |
+| [US-100](https://www.amazon.com/gp/product/B00LQEUFHC/ref=oh_aui_detailpage_o04_s00?ie=UTF8&psc=1)            | $2.20 | Similar to HC-SR04, but for 3v |
+| [JRC-21F 3v Relay](https://www.amazon.com/gp/product/B00LQEUFHC/ref=oh_aui_detailpage_o04_s00?ie=UTF8&psc=1)             | $2.50 |                        |
 | 330Ω resistor     |       |                                |
 | 2n2222 transistor |       |                                |
 | Total | $11      |                                |
