@@ -66,7 +66,7 @@ class MqttGarage:
         trigger = 0
         echo = 4
         relayPin = 5
-        serverAddress = "192.168.1.11"
+        serverAddress = "192.168.1.12"
         
         self.distanceSensor = DistanceSensor(trigger, echo)
         
