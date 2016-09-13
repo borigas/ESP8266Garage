@@ -5,8 +5,6 @@ from simple import MQTTClient
 import ubinascii
 import ujson
 
-# TODO WatchDog timer to restart device: http://docs.micropython.org/en/latest/esp8266/library/machine.WDT.html
-
 
 class Relay:
 
