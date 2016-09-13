@@ -89,6 +89,7 @@ class MqttGarage:
         self.hasNewMessage = False
         self.lastPublish = 0
         self.lastSubscribe = 0
+        self.recentDistances = list()
         
     def timerCallback(self, timer):
         isTimeLocked = False
@@ -158,19 +159,27 @@ class MqttGarage:
             
     def GetDistance(self):
         distanceTolerance = 0.2
-        checkCount = 7
+        checkCount = 5
         distances = list()
         
         for i in range(checkCount):
             distance = self.distanceSensor.Measure()
             if self.IsValidReading(distance):
                 distances.append(distance)
-                
-        if len(distances) == 0:
-            return 0
-        else:
-            return max(distances)
         
+        currentMeasurement = 0
+        if len(distances) != 0:
+            currentMeasurement = max(distances)
+            self.recentDistances.append(currentMeasurement)
+            if len(self.recentDistances) > checkCount:
+                self.recentDistances.pop(0)
+        
+            firstNum = self.recentDistances[0]
+            for num in self.recentDistances:
+                if abs(firstNum - num) > distanceTolerance:
+                    return 0
+            
+        return currentMeasurement
             
     def PublishStatus(self):
         status = "closed"
