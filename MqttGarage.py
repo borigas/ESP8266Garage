@@ -142,7 +142,7 @@ class MqttGarage:
         hasDoorOpenChanged = isOpen != self.isOpen
         hasCarStatusChanged = isCarPresent != self.isCarPresent
         hasDistanceChanged = abs(distance - self.distance) > 0.2
-        hasPublishExpired = lastPublishAge > 60 * 60 # 1 hr
+        hasPublishExpired = lastPublishAge < 0 or lastPublishAge > 60 * 15 / 1.122833 # Clock isn't very accurate. Scale it back to real time
         
         #print("Dist:", distance, " HasRun:", self.hasRun, " IsValid:", isValidReading, " IsOpen:", isOpen, " CarPresent:", isCarPresent, " DoorChanged:", hasDoorOpenChanged, " CarChanged:", hasCarStatusChanged, " DistChanged:", hasDistanceChanged, " PubChanged:", hasPublishExpired, " PubAge:", lastPublishAge, " Now:", now, " Last:", self.lastPublish)
         
