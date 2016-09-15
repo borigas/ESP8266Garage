@@ -1,8 +1,8 @@
 # This file is executed on every boot (including wake-boot from deepsleep)
 import gc
-import webrepl
+#import webrepl
 
-webrepl.start()
+#webrepl.start()
 gc.collect()
 
 print("Booted")

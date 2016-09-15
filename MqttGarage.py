@@ -31,7 +31,6 @@ class MqttGarage:
         
         self.distance = 0
         self.isOpen = False
-        self.isCarPresent = False
         self.hasRun = False
         self.hasNewMessage = False
         self.lastPublish = 0
@@ -76,57 +75,30 @@ class MqttGarage:
         self.hasNewMessage = True
         
     def CheckDistance(self):
-        distance = self.GetDistance()
+        distance = self.distanceSensor.SmoothedMeasure()
         
         now = time.time()
         lastPublishAge = now - self.lastPublish
         
-        isOpen = self.IsDoorOpen(distance)
-        isCarPresent = self.IsCarPresent(distance)
+        isOpen = self.distanceSensor.IsDoorOpen(distance)
         
-        isValidReading = self.IsValidReading(distance)
+        isValidReading = self.distanceSensor.IsValidReading(distance)
         
         hasDoorOpenChanged = isOpen != self.isOpen
-        hasCarStatusChanged = isCarPresent != self.isCarPresent
         hasDistanceChanged = abs(distance - self.distance) > 0.2
         hasPublishExpired = lastPublishAge < 0 or lastPublishAge > 60 * 15 / 1.122833 # Clock isn't very accurate. Scale it back to real time
         
         #print("Dist:", distance, " HasRun:", self.hasRun, " IsValid:", isValidReading, " IsOpen:", isOpen, " CarPresent:", isCarPresent, " DoorChanged:", hasDoorOpenChanged, " CarChanged:", hasCarStatusChanged, " DistChanged:", hasDistanceChanged, " PubChanged:", hasPublishExpired, " PubAge:", lastPublishAge, " Now:", now, " Last:", self.lastPublish)
         
-        if isValidReading and ((not self.hasRun) or hasDoorOpenChanged or hasCarStatusChanged or hasDistanceChanged or hasPublishExpired):
+        if isValidReading and ((not self.hasRun) or hasDoorOpenChanged or hasDistanceChanged or hasPublishExpired):
         
             self.distance = distance
             self.isOpen = isOpen
-            self.isCarPresent = isCarPresent
             
             self.PublishStatus()
             
             self.lastPublish = now
             self.hasRun = True
-            
-    def GetDistance(self):
-        distanceTolerance = 0.2
-        checkCount = 5
-        distances = list()
-        
-        for i in range(checkCount):
-            distance = self.distanceSensor.Measure()
-            if self.IsValidReading(distance):
-                distances.append(distance)
-        
-        currentMeasurement = 0
-        if len(distances) != 0:
-            currentMeasurement = max(distances)
-            self.recentDistances.append(currentMeasurement)
-            if len(self.recentDistances) > checkCount:
-                self.recentDistances.pop(0)
-        
-            firstNum = self.recentDistances[0]
-            for num in self.recentDistances:
-                if abs(firstNum - num) > distanceTolerance:
-                    return 0
-            
-        return currentMeasurement
             
     def PublishStatus(self):
         status = "closed"
@@ -137,7 +109,6 @@ class MqttGarage:
             Status = status,
             Distance = self.distance, 
             IsOpen = self.isOpen,
-            IsCarPresent = self.isCarPresent,
             ClientId = self.clientId,
         )
         msg = ujson.dumps(dictionary)
@@ -145,21 +116,12 @@ class MqttGarage:
         print(topic + ": " + msg)
         self.mqttClient.Publish(topic, msg)
             
-    def IsDoorOpen(self, distance):
-        return distance <= 4
-        
-    def IsCarPresent(self, distance):
-        return distance <= 6
-        
-    def IsValidReading(self, distance):
-        return 0.1 < distance < 25
-            
     def ToggleDoor(self, desiredIsOpen):
-        distance = self.GetDistance()
+        distance = self.distanceSensor.SmoothedMeasure()
         
         expectedCurrentIsDoorUp = not desiredIsOpen
         
-        if self.IsValidReading(distance) and self.IsDoorOpen(distance) == expectedCurrentIsDoorUp:
+        if self.distanceSensor.IsValidReading(distance) and self.distanceSensor.IsDoorOpen(distance) == expectedCurrentIsDoorUp:
             self.relay.Close()
             time.sleep(0.1)
             self.relay.Open()
