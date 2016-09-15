@@ -1,62 +1,11 @@
 import machine
-from machine import Pin
 import time
-from simple import MQTTClient
 import ubinascii
 import ujson
 
-
-class Relay:
-
-    def __init__(self, pin, initialValue=0):
-        self.controlPin = Pin(pin, Pin.OUT)
-        self.Open()
-        pass
-    
-    def Open(self):
-        self.controlPin.value(0)
-        
-    def Close(self):
-        self.controlPin.value(1)
-        
-        
-class DistanceSensor:
-
-    def __init__(self, trigger, echo):
-        self.lastHighTime = 0
-    
-        self.triggerPin = machine.Pin(0, machine.Pin.OUT)
-        self.triggerPin.value(0)
-        self.echoPin = Pin(4, Pin.IN)
-        
-    def Measure(self):
-        self.triggerPin.value(1)
-        #time.sleep(0.001)
-        self.triggerPin.value(0)
-        
-        time = machine.time_pulse_us(self.echoPin, 1, 100000)
-        dist = 165.7 * time * 3.28084 / 1000000
-        #print("Dist: ", dist, " ft. Temp Timer: ", time)
-        
-        return dist
-        
-
-class MqttHelper:
-    
-    def __init__(self, serverAddress, clientId):
-        self.mqttClient = MQTTClient(clientId, serverAddress)
-        self.mqttClient.connect()
-            
-    def Publish(self, topic, message):
-        self.mqttClient.publish(topic, message)
-
-    def Subscribe(self, topic, callback):
-        self.mqttClient.set_callback(callback)
-        self.mqttClient.subscribe(topic)
-        
-    def CheckForMessage(self):
-        self.mqttClient.check_msg()
-    
+from Relay import Relay
+from DistanceSensor import DistanceSensor
+from MqttHelper import MqttHelper
     
 class MqttGarage:
     
