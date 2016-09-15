@@ -62,9 +62,9 @@ class MqttGarage:
                 closeMsg = b'close'
                 currentMessage = self.lastMessage
                 if currentMessage == openMsg:
-                    self.OpenDoor()
+                    self.ToggleDoor(True)
                 elif currentMessage == closeMsg:
-                    self.CloseDoor()
+                    self.ToggleDoor(False)
             
         return hadMessage
     
@@ -154,12 +154,6 @@ class MqttGarage:
     def IsValidReading(self, distance):
         return 0.1 < distance < 25
             
-    def OpenDoor(self):
-        self.ToggleDoor(True)
-        
-    def CloseDoor(self):
-        self.ToggleDoor(False)
-            
     def ToggleDoor(self, desiredIsOpen):
         distance = self.GetDistance()
         
@@ -179,8 +173,3 @@ class MqttGarage:
         
     def StopTimer(self):
         self.timer.deinit()
-
-    def Run():
-        instance = MqttGarage()
-        instance.StartTimer()
-        return instance
