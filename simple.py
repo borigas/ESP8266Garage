@@ -2,18 +2,25 @@ import usocket as socket
 import ustruct as struct
 from ubinascii import hexlify
 
-# From https://raw.githubusercontent.com/micropython/micropython-lib/master/umqtt.simple/umqtt/simple.py
 class MQTTException(Exception):
     pass
 
 class MQTTClient:
 
-    def __init__(self, client_id, server, port=1883):
+    def __init__(self, client_id, server, port=0, user=None, password=None, keepalive=0,
+                 ssl=False, ssl_params={}):
+        if port == 0:
+            port = 8883 if ssl else 1883
         self.client_id = client_id
         self.sock = None
         self.addr = socket.getaddrinfo(server, port)[0][-1]
+        self.ssl = ssl
+        self.ssl_params = ssl_params
         self.pid = 0
         self.cb = None
+        self.user = user
+        self.pswd = password
+        self.keepalive = keepalive
 
     def _send_str(self, s):
         self.sock.write(struct.pack("!H", len(s)))
@@ -35,12 +42,25 @@ class MQTTClient:
     def connect(self, clean_session=True):
         self.sock = socket.socket()
         self.sock.connect(self.addr)
+        if self.ssl:
+            import ussl
+            self.sock = ussl.wrap_socket(self.sock, **self.ssl_params)
         msg = bytearray(b"\x10\0\0\x04MQTT\x04\x02\0\0")
         msg[1] = 10 + 2 + len(self.client_id)
         msg[9] = clean_session << 1
+        if self.user is not None:
+            msg[1] += 2 + len(self.user) + 2 + len(self.pswd)
+            msg[9] |= 0xC0
+        if self.keepalive:
+            assert self.keepalive < 65536
+            msg[10] |= self.keepalive >> 8
+            msg[11] |= self.keepalive & 0x00FF
         self.sock.write(msg)
         #print(hex(len(msg)), hexlify(msg, ":"))
         self._send_str(self.client_id)
+        if self.user is not None:
+            self._send_str(self.user)
+            self._send_str(self.pswd)
         resp = self.sock.read(4)
         assert resp[0] == 0x20 and resp[1] == 0x02
         if resp[3] != 0:
@@ -53,7 +73,6 @@ class MQTTClient:
 
     def ping(self):
         self.sock.write(b"\xc0\0")
-        self.sock.close()
 
     def publish(self, topic, msg, retain=False, qos=0):
         pkt = bytearray(b"\x30\0\0\0")
@@ -74,9 +93,8 @@ class MQTTClient:
         if qos > 0:
             self.pid += 1
             pid = self.pid
-            buf = bytearray(b"\0\0")
-            struct.pack_into("!H", buf, 0, pid)
-            self.sock.write(buf)
+            struct.pack_into("!H", pkt, 0, pid)
+            self.sock.write(pkt, 2)
         self.sock.write(msg)
         if qos == 1:
             while 1:
@@ -100,12 +118,15 @@ class MQTTClient:
         self.sock.write(pkt)
         self._send_str(topic)
         self.sock.write(qos.to_bytes(1))
-        resp = self.sock.read(5)
-        #print(resp)
-        assert resp[0] == 0x90
-        assert resp[2] == pkt[2] and resp[3] == pkt[3]
-        if resp[4] == 0x80:
-            raise MQTTException(resp[4])
+        while 1:
+            op = self.wait_msg()
+            if op == 0x90:
+                resp = self.sock.read(4)
+                #print(resp)
+                assert resp[1] == pkt[2] and resp[2] == pkt[3]
+                if resp[3] == 0x80:
+                    raise MQTTException(resp[3])
+                return
 
     # Wait for a single incoming MQTT message and process it.
     # Subscribed messages are delivered to a callback previously
