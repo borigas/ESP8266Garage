@@ -6,10 +6,10 @@ time.sleep(15)
 
 print("Starting")
 
-garage = MqttGarage()
-garage.StartTimer()
-
-print("Started")
-
-import webrepl
-webrepl.start()
+try:
+    garage = MqttGarage()
+    garage.StartTimer()
+    print("Started")
+finally:
+    import webrepl
+    webrepl.start()
