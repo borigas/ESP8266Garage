@@ -2,6 +2,7 @@ import usocket as socket
 import ustruct as struct
 from ubinascii import hexlify
 
+# From https://raw.githubusercontent.com/micropython/micropython-lib/master/umqtt.simple/umqtt/simple.py
 class MQTTException(Exception):
     pass
 
