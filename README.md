@@ -8,6 +8,9 @@ https://goo.gl/photos/TKTH1ud8kynhA8XG7
 ###Circuit Diagram:###
 https://circuits.io/circuits/2474900-mqtt-garage-door-sensor
 
+###Case Designs###
+https://tinkercad.com/things/8l6zTLbaJ09
+
 ###Parts###
 
 | Part        | Price |
@@ -18,7 +21,8 @@ https://circuits.io/circuits/2474900-mqtt-garage-door-sensor
 | [JRC-21F 3v Relay](https://www.amazon.com/gp/product/B00LQEUFHC/ref=oh_aui_detailpage_o04_s00?ie=UTF8&psc=1)             | $2.50 
 | 330Ω resistor     |       |
 | 2n2222 transistor |       |
-| Total | $11      |
+| PLA for case | $4 |
+| Total | $15      |
 
 ###Notes###
 - The amp is because the ESP8266 IO pins don't source enough current to trigger the relay. The 3v pin does though, so I use the current from that
