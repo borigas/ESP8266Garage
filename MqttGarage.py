@@ -42,8 +42,8 @@ class MqttGarage:
         if self.lastSubscribe != 0:
             now = time.time()
             lastSubscribeAge = now - self.lastSubscribe
-            # Lock for 1 min after receiving a message
-            isTimeLocked = lastSubscribeAge < 60
+            # Lock for 15s after receiving a message
+            isTimeLocked = lastSubscribeAge < 15
         
         hadMessage = self.CheckMqttMessages(not isTimeLocked)
         if not isTimeLocked and not hadMessage:
